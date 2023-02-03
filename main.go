@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -26,11 +28,18 @@ func main() {
 			panic(err)
 		}
 
-		go handleConnection(conn)
+		go func() {
+			err := handleConnection(conn)
+			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+				fmt.Println("Disconnected from a client.")
+			} else if err != nil {
+				panic(err)
+			}
+		}()
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn) error {
 	defer conn.Close()
 
 	backend := pgproto3.NewBackend(conn, conn)
@@ -38,7 +47,7 @@ func handleConnection(conn net.Conn) {
 	// Read the initial startup message
 	startupMsg, err := backend.ReceiveStartupMessage()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	fmt.Printf("Received startup message: %+v\n", startupMsg)
@@ -50,31 +59,33 @@ func handleConnection(conn net.Conn) {
 		fmt.Printf("buf: %v\n", string(buf))
 		_, err = conn.Write(buf)
 		if err != nil {
-			log.Fatalf("error sending ready for query: %v", err)
+			return fmt.Errorf("error sending ready for query: %v", err)
 		}
 		msg, err := backend.Receive()
+		if err != nil {
+			return err
+		}
 		msgPass := msg.(*pgproto3.PasswordMessage)
 		fmt.Printf("startupMsg: %v, %v\n", msgPass.Password, err)
 		buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
 		fmt.Printf("buf: %v\n", string(buf))
 		_, err = conn.Write(buf)
 		if err != nil {
-			log.Fatalf("error sending ready for query: %v", err)
+			return fmt.Errorf("error sending ready for query: %v", err)
 		}
 		buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
 		_, err = conn.Write(buf)
 		if err != nil {
-			log.Fatalf("error sending ready for query: %v", err)
+			return fmt.Errorf("error sending ready for query: %v", err)
 		}
 	case *pgproto3.SSLRequest:
 		_, err = conn.Write([]byte("N"))
 		if err != nil {
-			log.Fatalf("error sending deny SSL request: %v", err)
+			return fmt.Errorf("error sending deny SSL request: %v", err)
 		}
-		handleConnection(conn)
-		return
+		return handleConnection(conn)
 	default:
-		log.Fatalf("unknown startup message: %#v", startupMsg)
+		return fmt.Errorf("unknown startup message: %#v", startupMsg)
 	}
 
 	fmt.Println("Sent AuthenticationOk message")
@@ -82,14 +93,14 @@ func handleConnection(conn net.Conn) {
 	for {
 		msg, err := backend.Receive()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
 			fmt.Printf("Received query: %s\n", msg.String)
 			if err != nil {
-				log.Fatalf("error generating query response: %v", err)
+				return fmt.Errorf("error generating query response: %v", err)
 			}
 			say, err := cowsay.Say(
 				fmt.Sprintf(`Your query was
@@ -98,7 +109,7 @@ but I am not ready yet`, msg.String),
 				cowsay.Type("elephant"),
 			)
 			if err != nil {
-				log.Fatalf("error generating query response: %v", err)
+				return fmt.Errorf("error generating query response: %v", err)
 			}
 			buf := (&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{
 				{
@@ -116,13 +127,13 @@ but I am not ready yet`, msg.String),
 			buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(buf)
 			_, err = conn.Write(buf)
 			if err != nil {
-				log.Fatalf("error writing query response: %v", err)
+				return fmt.Errorf("error writing query response: %v", err)
 			}
 		case *pgproto3.Terminate:
 			fmt.Println("Received terminate message")
-			return
+			return nil
 		default:
-			fmt.Printf("Received unhandled message: %+v\n", msg)
+			return fmt.Errorf("received unhandled message: %+v", msg)
 		}
 	}
 }
