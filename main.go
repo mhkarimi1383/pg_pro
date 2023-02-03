@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	cowsay "github.com/Code-Hex/Neo-cowsay/v2"
@@ -54,9 +53,7 @@ func handleConnection(conn net.Conn) error {
 	backend.SetAuthType(pgproto3.AuthTypeMD5Password)
 	switch startupMsg.(type) {
 	case *pgproto3.StartupMessage:
-		log.Printf("startupMsg.(*pgproto3.StartupMessage): %+v\n", startupMsg.(*pgproto3.StartupMessage))
 		buf := (&pgproto3.AuthenticationMD5Password{}).Encode(nil)
-		fmt.Printf("buf: %v\n", string(buf))
 		_, err = conn.Write(buf)
 		if err != nil {
 			return fmt.Errorf("error sending ready for query: %v", err)
@@ -66,9 +63,8 @@ func handleConnection(conn net.Conn) error {
 			return err
 		}
 		msgPass := msg.(*pgproto3.PasswordMessage)
-		fmt.Printf("startupMsg: %v, %v\n", msgPass.Password, err)
+		fmt.Printf("entered password: %v, %v\n", msgPass.Password, err)
 		buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
-		fmt.Printf("buf: %v\n", string(buf))
 		_, err = conn.Write(buf)
 		if err != nil {
 			return fmt.Errorf("error sending ready for query: %v", err)
@@ -88,7 +84,7 @@ func handleConnection(conn net.Conn) error {
 		return fmt.Errorf("unknown startup message: %#v", startupMsg)
 	}
 
-	fmt.Println("Sent AuthenticationOk message")
+	fmt.Println("user logged in")
 	// Read and handle incoming messages
 	for {
 		msg, err := backend.Receive()
