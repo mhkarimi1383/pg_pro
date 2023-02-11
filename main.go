@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mhkarimi1383/pg_pro/config"
+	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 )
 
 var (
@@ -128,10 +129,15 @@ func handleConnection(conn net.Conn) error {
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
 			fmt.Printf("Received query: %s\n", msg.String)
+			isRead, _ := queryhelper.IsReadOperation(msg.String)
+			// if err != nil {
+			// 	return err // TODO: check if that was a user mistake or not (do not make postgres to handle user mistakes)
+			// }
 			say, err := cowsay.Say(
 				fmt.Sprintf(`Your query was
-'%v'
-but I am not ready yet`, msg.String),
+"%v"
+but I am not ready yet
+ReadOperation: "%v"`, msg.String, isRead),
 				cowsay.Type("elephant"),
 			)
 			if err != nil {
