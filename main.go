@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 
 	cowsay "github.com/Code-Hex/Neo-cowsay/v2"
@@ -130,6 +131,11 @@ func handleConnection(conn net.Conn) error {
 		case *pgproto3.Query:
 			fmt.Printf("Received query: %s\n", msg.String)
 			isRead, _ := queryhelper.IsReadOperation(msg.String)
+			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
+			if err != nil {
+				log.Println("err: ", err)
+			}
+			fmt.Printf("%+v\n", accessInfo)
 			// if err != nil {
 			// 	return err // TODO: check if that was a user mistake or not (do not make postgres to handle user mistakes)
 			// }
