@@ -12,27 +12,16 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mhkarimi1383/pg_pro/config"
+	"github.com/mhkarimi1383/pg_pro/logger"
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 )
-
-var (
-	logger *zap.Logger
-)
-
-func init() {
-	var err error
-	logger, err = zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
-}
 
 func main() {
 	defer logger.Sync()
 	// Listen on a port for incoming connections
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", config.Get("listen_port")))
 	if err != nil {
-		logger.WithOptions(zap.AddStacktrace(zap.DPanicLevel)).Fatal(
+		logger.Panic(
 			err.Error(),
 			zap.String("event", "listen"),
 			zap.Uint("port", config.GetUint("listen_port")),
@@ -49,7 +38,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			logger.WithOptions(zap.AddStacktrace(zap.DPanicLevel)).Fatal(
+			logger.Panic(
 				err.Error(),
 				zap.String("event", "accept"),
 				zap.Uint("port", config.GetUint("listen_port")),
@@ -64,7 +53,7 @@ func main() {
 					zap.String("event", "handle connection"),
 				)
 			} else if err != nil {
-				logger.WithOptions(zap.AddStacktrace(zap.DPanicLevel)).Fatal(
+				logger.Panic(
 					err.Error(),
 					zap.String("event", "handle connection"),
 				)
