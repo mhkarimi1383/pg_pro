@@ -6,12 +6,12 @@ import (
 	"log"
 	"net"
 
-	cowsay "github.com/Code-Hex/Neo-cowsay/v2"
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"github.com/mhkarimi1383/pg_pro/config"
+	"github.com/mhkarimi1383/pg_pro/connection"
 	"github.com/mhkarimi1383/pg_pro/logger"
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 )
@@ -119,7 +119,7 @@ func handleConnection(conn net.Conn) error {
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
 			fmt.Printf("Received query: %s\n", msg.String)
-			isRead, _ := queryhelper.IsReadOperation(msg.String)
+			// isRead, _ := queryhelper.IsReadOperation(msg.String)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
 				log.Println("err: ", err)
@@ -128,34 +128,40 @@ func handleConnection(conn net.Conn) error {
 			// if err != nil {
 			// 	return err // TODO: check if that was a user mistake or not (do not make postgres to handle user mistakes)
 			// }
-			say, err := cowsay.Say(
-				fmt.Sprintf(`Your query was
-"%v"
-but I am not ready yet
-ReadOperation: "%v"`, msg.String, isRead),
-				cowsay.Type("elephant"),
-			)
-			if err != nil {
-				return errors.Wrap(err, "generating query response")
-			}
-			buf := (&pgproto3.RowDescription{Fields: []pgproto3.FieldDescription{
-				{
-					Name:                 []byte("Elephant Answer"),
-					TableOID:             0,
-					TableAttributeNumber: 0,
-					DataTypeOID:          25,
-					DataTypeSize:         -1,
-					TypeModifier:         -1,
-					Format:               0,
-				},
-			}}).Encode(nil)
-			buf = (&pgproto3.DataRow{Values: [][]byte{[]byte(say)}}).Encode(buf)
-			buf = (&pgproto3.CommandComplete{}).Encode(buf)
-			buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(buf)
+			// 			say, err := cowsay.Say(
+			// 				fmt.Sprintf(`Your query was
+			// "%v"
+			// but I am not ready yet
+			// ReadOperation: "%v"`, msg.String, isRead),
+			// 				cowsay.Type("elephant"),
+			// 			)
+			// 			if err != nil {
+			// 				return errors.Wrap(err, "generating query response")
+			// 			}
+			result, _ := connection.RunQuery(msg.String)
+
+			buf := (&result.RowDescription).Encode(nil)
 			_, err = conn.Write(buf)
 			if err != nil {
 				return errors.Wrap(err, "writing query response")
 			}
+			buf = (&result.DataRow).Encode(nil)
+			log.Println(buf)
+			_, err = conn.Write(buf)
+			if err != nil {
+				return errors.Wrap(err, "writing query response")
+			}
+			buf = (&pgproto3.CommandComplete{}).Encode(nil)
+			_, err = conn.Write(buf)
+			if err != nil {
+				return errors.Wrap(err, "writing query response")
+			}
+			buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
+			_, err = conn.Write(buf)
+			if err != nil {
+				return errors.Wrap(err, "writing query response")
+			}
+			log.Println(string(buf))
 		case *pgproto3.Terminate:
 			fmt.Println("Received terminate message")
 			return nil

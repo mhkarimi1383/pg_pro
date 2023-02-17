@@ -2,6 +2,7 @@ package queryhelper
 
 import (
 	"fmt"
+	"log"
 
 	pg_query "github.com/pganalyze/pg_query_go/v2"
 )
@@ -88,13 +89,20 @@ func GetRelatedTables(q string) (tables []TableAccessInfo, err error) {
 	for _, i := range result.Stmts {
 		if selectStmt := i.Stmt.GetSelectStmt(); selectStmt != nil {
 			for _, from := range selectStmt.GetFromClause() {
-				tables = append(tables, TableAccessInfo{
-					TableInfo: TableInfo{
-						Name:   from.GetRangeVar().Relname,
-						Schema: schemaNameFixer(from.GetRangeVar().Schemaname),
-					},
-					AccessMode: Select,
-				})
+				log.Println(from.GetRangeVar())
+				if from.GetRangeVar() != nil {
+					tables = append(tables, TableAccessInfo{
+						TableInfo: TableInfo{
+							Name:   from.GetRangeVar().Relname,
+							Schema: schemaNameFixer(from.GetRangeVar().Schemaname),
+						},
+						AccessMode: Select,
+					})
+				} else {
+					tables = append(tables, TableAccessInfo{
+						AccessMode: Select,
+					})
+				}
 			}
 		} else if insertStmt := i.Stmt.GetInsertStmt(); insertStmt != nil {
 			tables = append(tables, TableAccessInfo{
