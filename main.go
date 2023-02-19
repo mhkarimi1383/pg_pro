@@ -145,9 +145,11 @@ func handleConnection(conn net.Conn) error {
 			if err != nil {
 				return errors.Wrap(err, "writing query response")
 			}
-			buf = (&result.DataRow).Encode(nil)
-			log.Println(buf)
-			_, err = conn.Write(buf)
+			for _, d := range result.DataRows {
+				buf = (&d).Encode(nil)
+				log.Println(buf)
+				_, err = conn.Write(buf)
+			}
 			if err != nil {
 				return errors.Wrap(err, "writing query response")
 			}

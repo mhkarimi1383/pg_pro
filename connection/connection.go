@@ -11,7 +11,7 @@ import (
 
 type QueryResult struct {
 	pgproto3.RowDescription
-	pgproto3.DataRow
+	DataRows []pgproto3.DataRow
 }
 
 func RunQuery(q string) (result *QueryResult, err error) {
@@ -55,12 +55,14 @@ func RunQuery(q string) (result *QueryResult, err error) {
 		if rowValuesErr != nil {
 			return nil, rowValuesErr
 		}
+		dataRow := pgproto3.DataRow{}
 		for _, value := range values {
 			byteValue := utils.GetBytes(value)
-			result.DataRow.Values = append(result.DataRow.Values, byteValue)
+			dataRow.Values = append(dataRow.Values, byteValue)
 		}
+		result.DataRows = append(result.DataRows, dataRow)
 	}
-	log.Println("Values", len(result.DataRow.Values))
+	log.Println("Values", len(result.DataRows))
 	log.Println("Fields", len(result.RowDescription.Fields))
 	return
 }
