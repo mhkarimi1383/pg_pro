@@ -119,25 +119,29 @@ func handleConnection(conn net.Conn) error {
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
 			fmt.Printf("Received query: %s\n", msg.String)
-			// isRead, _ := queryhelper.IsReadOperation(msg.String)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
-				log.Println("err: ", err)
+				log.Printf("err: %+v\n", err)
+				buf := (&pgproto3.ErrorResponse{
+					Message: err.Error(),
+				}).Encode(nil) // TODO: Add more fields
+				_, err = conn.Write(buf)
+				if err != nil {
+					return errors.Wrap(err, "writing query error response")
+				}
+				buf = (&pgproto3.CommandComplete{}).Encode(nil)
+				_, err = conn.Write(buf)
+				if err != nil {
+					return errors.Wrap(err, "writing CommandComplete response")
+				}
+				buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
+				_, err = conn.Write(buf)
+				if err != nil {
+					return errors.Wrap(err, "writing ReadyForQuery response")
+				}
+				continue
 			}
 			fmt.Printf("%+v\n", accessInfo)
-			// if err != nil {
-			// 	return err // TODO: check if that was a user mistake or not (do not make postgres to handle user mistakes)
-			// }
-			// 			say, err := cowsay.Say(
-			// 				fmt.Sprintf(`Your query was
-			// "%v"
-			// but I am not ready yet
-			// ReadOperation: "%v"`, msg.String, isRead),
-			// 				cowsay.Type("elephant"),
-			// 			)
-			// 			if err != nil {
-			// 				return errors.Wrap(err, "generating query response")
-			// 			}
 			result, _ := connection.RunQuery(msg.String)
 
 			buf := (&result.RowDescription).Encode(nil)
@@ -147,8 +151,10 @@ func handleConnection(conn net.Conn) error {
 			}
 			for _, d := range result.DataRows {
 				buf = (&d).Encode(nil)
-				log.Println(buf)
 				_, err = conn.Write(buf)
+				if err != nil {
+					return errors.Wrap(err, "writing query response")
+				}
 			}
 			if err != nil {
 				return errors.Wrap(err, "writing query response")

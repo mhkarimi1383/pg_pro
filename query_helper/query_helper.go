@@ -126,7 +126,7 @@ func GetRelatedTables(q string) (tables []TableAccessInfo, err error) {
 					Name:   deleteStmt.Relation.Relname,
 					Schema: schemaNameFixer(updateStmt.Relation.Schemaname),
 				},
-				AccessMode: Delete,
+				AccessMode: Update,
 			})
 		} else {
 			tables = append(tables, TableAccessInfo{
