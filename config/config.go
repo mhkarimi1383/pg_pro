@@ -21,3 +21,11 @@ func Get(key string) any {
 func GetUint(key string) uint {
 	return viper.GetUint(key)
 }
+
+func GetUint16(key string) uint16 {
+	return viper.GetUint16(key)
+}
+
+func GetString(key string) string {
+	return viper.GetString(key)
+}

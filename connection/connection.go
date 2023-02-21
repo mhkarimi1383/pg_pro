@@ -1,11 +1,10 @@
 package connection
 
 import (
-	"log"
-
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/mhkarimi1383/pg_pro/config"
 	"github.com/mhkarimi1383/pg_pro/utils"
 )
 
@@ -17,11 +16,11 @@ type QueryResult struct {
 func RunQuery(q string) (result *QueryResult, err error) {
 	result = new(QueryResult)
 	conn, err := pgx.Connect(pgx.ConnConfig{
-		Host:     "localhost",
-		Port:     5432,
-		Database: "postgres",
-		User:     "postgres",
-		Password: "postgres",
+		Host:     config.GetString("sources.0.host"),
+		Port:     config.GetUint16("sources.0.port"),
+		Database: config.GetString("database"),
+		User:     config.GetString("sources.0.username"),
+		Password: config.GetString("sources.0.password"),
 	})
 	if err != nil {
 		return
@@ -62,7 +61,5 @@ func RunQuery(q string) (result *QueryResult, err error) {
 		}
 		result.DataRows = append(result.DataRows, dataRow)
 	}
-	log.Println("Values", len(result.DataRows))
-	log.Println("Fields", len(result.RowDescription.Fields))
 	return
 }
