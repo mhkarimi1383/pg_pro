@@ -2,9 +2,8 @@ listen_port: 54321
 database: postgres
 ## Only one source for now
 sources:
-  - host: 127.0.0.1
-    port: 5432
+  - url: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+    min_conns: 1
+    max_conns: 15
     ## TODO: Not fully implimented
     mode: hybrid # could be master or slave
-    username: postgres
-    password: postgres

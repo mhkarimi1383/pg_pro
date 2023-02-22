@@ -1,8 +1,10 @@
 package connection
 
 import (
-	"github.com/jackc/pgx"
+	"context"
+
 	"github.com/jackc/pgx/v5/pgproto3"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/mhkarimi1383/pg_pro/config"
 	"github.com/mhkarimi1383/pg_pro/utils"
@@ -13,40 +15,42 @@ type QueryResult struct {
 	DataRows []pgproto3.DataRow
 }
 
+var (
+	pool *pgxpool.Pool
+)
+
+func init() {
+	var err error
+	cfg, err := pgxpool.ParseConfig(config.GetString("sources.0.url"))
+	if err != nil {
+		panic(err)
+	}
+
+	cfg.MinConns = config.GetInt32("sources.0.min_conns")
+	cfg.MaxConns = config.GetInt32("sources.0.max_conns")
+
+	pool, err = pgxpool.NewWithConfig(context.Background(), cfg)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
 func RunQuery(q string) (result *QueryResult, err error) {
 	result = new(QueryResult)
-	conn, err := pgx.Connect(pgx.ConnConfig{
-		Host:     config.GetString("sources.0.host"),
-		Port:     config.GetUint16("sources.0.port"),
-		Database: config.GetString("database"),
-		User:     config.GetString("sources.0.username"),
-		Password: config.GetString("sources.0.password"),
-	})
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-	rows, err := conn.Query(q)
+	rows, err := pool.Query(context.Background(), q)
 	if err != nil {
 		return
 	}
 	for _, desc := range rows.FieldDescriptions() {
-		dataTypeOID, dataTypeOIDErr := desc.DataType.Value()
-		if dataTypeOIDErr != nil {
-			return nil, dataTypeOIDErr
-		}
-		tableOID, tableOIDOIDErr := desc.DataType.Value()
-		if tableOIDOIDErr != nil {
-			return nil, tableOIDOIDErr
-		}
 		result.RowDescription.Fields = append(result.RowDescription.Fields, pgproto3.FieldDescription{
 			Name:                 []byte(desc.Name),
-			Format:               desc.FormatCode,
-			TypeModifier:         desc.Modifier,
+			Format:               desc.Format,
+			TypeModifier:         desc.TypeModifier,
 			DataTypeSize:         desc.DataTypeSize,
-			DataTypeOID:          uint32(dataTypeOID.(int64)),
-			TableOID:             uint32(tableOID.(int64)),
-			TableAttributeNumber: desc.AttributeNumber,
+			DataTypeOID:          desc.DataTypeOID,
+			TableOID:             desc.TableOID,
+			TableAttributeNumber: desc.TableAttributeNumber,
 		})
 	}
 	for rows.Next() {

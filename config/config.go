@@ -29,3 +29,7 @@ func GetUint16(key string) uint16 {
 func GetString(key string) string {
 	return viper.GetString(key)
 }
+
+func GetInt32(key string) int32 {
+	return viper.GetInt32(key)
+}
