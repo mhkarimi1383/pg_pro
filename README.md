@@ -19,3 +19,19 @@ As for User management goes, This project is usefull when you want to manage use
 As for loadbalancing goes that's great to loadbalance connections to servers in a smart way (By understanding what is the query)
 
 For caching I want to make it posible to use any kind of caching for your database, since postgresql caching parameters are so hard to configure them in a good way.
+
+## How the loadbalancer works
+
+When project starts it will make a connection pool to each server that is listed in the `config.yaml` file
+
+when a quey came, it will parse given query, then it will return an error to user (if there is an error in the query)
+
+when we know the type of the query (read or write), we will select one of the servers to loadbalance between them
+
+## Configuration
+
+Checkout `config.yaml` file this file could be in one of theas directories:
+
+- /etc/pg_pro/
+- $HOME/.pg_pro
+- $PWD

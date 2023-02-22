@@ -1,9 +1,8 @@
 listen_port: 54321
 database: postgres
-## Only one source for now
+
 sources:
   - url: postgresql://postgres:postgres@127.0.0.1:5432/postgres
     min_conns: 1
     max_conns: 15
-    ## TODO: Not fully implimented
     mode: master # could be master or slave
