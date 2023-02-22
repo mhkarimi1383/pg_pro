@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
+	pg_query "github.com/pganalyze/pg_query_go/v4/parser"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -121,10 +123,13 @@ func handleConnection(conn net.Conn) error {
 			fmt.Printf("Received query: %s\n", msg.String)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
-				log.Printf("err: %+v\n", err)
 				buf := (&pgproto3.ErrorResponse{
-					Message: err.Error(),
-				}).Encode(nil) // TODO: Add more fields
+					Message:  err.(*pg_query.Error).Message,
+					File:     err.(*pg_query.Error).Filename,
+					Detail:   err.(*pg_query.Error).Context,
+					Line:     int32(err.(*pg_query.Error).Lineno),
+					Position: int32(err.(*pg_query.Error).Cursorpos),
+				}).Encode(nil)
 				_, err = conn.Write(buf)
 				if err != nil {
 					return errors.Wrap(err, "writing query error response")
@@ -142,7 +147,49 @@ func handleConnection(conn net.Conn) error {
 				continue
 			}
 			fmt.Printf("%+v\n", accessInfo)
-			result, _ := connection.RunQuery(msg.String)
+			result, err := connection.RunQuery(msg.String)
+			if err != nil {
+				switch e := err.(type) {
+				case *pgconn.PgError:
+					buf := (&pgproto3.ErrorResponse{
+						Severity:         e.Severity,
+						Code:             e.Code,
+						Message:          e.Message,
+						Detail:           e.Detail,
+						Hint:             e.Hint,
+						Position:         e.Position,
+						InternalPosition: e.InternalPosition,
+						InternalQuery:    e.InternalQuery,
+						Where:            e.Where,
+						SchemaName:       e.SchemaName,
+						TableName:        e.TableName,
+						ColumnName:       e.ColumnName,
+						DataTypeName:     e.DataTypeName,
+						ConstraintName:   e.ConstraintName,
+						File:             e.File,
+						Line:             e.Line,
+						Routine:          e.Routine,
+					}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing query error response")
+					}
+					buf = (&pgproto3.CommandComplete{}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing CommandComplete response")
+					}
+					buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing ReadyForQuery response")
+					}
+					continue
+				default:
+					return errors.Wrap(err, "getting result from postgres")
+				}
+
+			}
 
 			buf := (&result.RowDescription).Encode(nil)
 			_, err = conn.Write(buf)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	pg_query "github.com/pganalyze/pg_query_go/v2"
+	pg_query "github.com/pganalyze/pg_query_go/v4"
 )
 
 const (
