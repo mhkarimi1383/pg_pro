@@ -18,6 +18,10 @@ func Get(key string) any {
 	return viper.Get(key)
 }
 
+func GetSlice(key string) []any {
+	return viper.Get(key).([]any)
+}
+
 func GetUint(key string) uint {
 	return viper.GetUint(key)
 }

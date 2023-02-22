@@ -147,7 +147,13 @@ func handleConnection(conn net.Conn) error {
 				continue
 			}
 			fmt.Printf("%+v\n", accessInfo)
-			result, err := connection.RunQuery(msg.String)
+			isRead := true
+			for _, i := range accessInfo {
+				if i.AccessMode != queryhelper.Select {
+					isRead = false
+				}
+			}
+			result, err := connection.RunQuery(msg.String, !isRead)
 			if err != nil {
 				switch e := err.(type) {
 				case *pgconn.PgError:

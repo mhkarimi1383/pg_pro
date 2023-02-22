@@ -7,7 +7,8 @@ We want to achieve to a great layer over PostgreSQL, with caching, advanced user
 - [x] Parsing Query and checking relation info
 - [ ] Caching (By understanding the type of the query)
 - [ ] User Management
-- [ ] LoadBalancing (By query type [read/write])
+- [x] LoadBalancing (By query type [read/write])
+- [ ] Automatic master/slave detection
 
 ## Why
 

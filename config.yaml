@@ -6,4 +6,4 @@ sources:
     min_conns: 1
     max_conns: 15
     ## TODO: Not fully implimented
-    mode: hybrid # could be master or slave
+    mode: master # could be master or slave

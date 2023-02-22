@@ -2,6 +2,9 @@ package connection
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,28 +19,50 @@ type QueryResult struct {
 }
 
 var (
-	pool *pgxpool.Pool
+	writePools []*pgxpool.Pool
+	readPools  []*pgxpool.Pool
 )
 
 func init() {
-	var err error
-	cfg, err := pgxpool.ParseConfig(config.GetString("sources.0.url"))
-	if err != nil {
-		panic(err)
+	for _, source := range config.GetSlice("sources") {
+		src := source.(map[string]any)
+		cfg, err := pgxpool.ParseConfig(fmt.Sprintf("%v", src["url"]))
+		if err != nil {
+			panic(err)
+		}
+
+		minConns, err := strconv.Atoi(fmt.Sprintf("%v", src["min_conns"]))
+		if err != nil {
+			panic(err)
+		}
+		cfg.MinConns = int32(minConns)
+		maxConns, err := strconv.Atoi(fmt.Sprintf("%v", src["max_conns"]))
+		if err != nil {
+			panic(err)
+		}
+		cfg.MaxConns = int32(maxConns)
+		pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+		if err == nil {
+			if src["mode"] == "slave" {
+				readPools = append(readPools, pool)
+			} else if src["mode"] == "master" {
+				writePools = append(writePools, pool)
+			}
+		}
 	}
-
-	cfg.MinConns = config.GetInt32("sources.0.min_conns")
-	cfg.MaxConns = config.GetInt32("sources.0.max_conns")
-
-	pool, err = pgxpool.NewWithConfig(context.Background(), cfg)
-
-	if err != nil {
-		panic(err)
+	if len(writePools) > 1 {
+		panic("multiple write connections provided")
 	}
 }
 
-func RunQuery(q string) (result *QueryResult, err error) {
+func RunQuery(q string, master bool) (result *QueryResult, err error) {
 	result = new(QueryResult)
+	var pool *pgxpool.Pool
+	if master {
+		pool = writePools[rand.Intn(len(writePools))]
+	} else {
+		pool = readPools[rand.Intn(len(readPools))]
+	}
 	rows, err := pool.Query(context.Background(), q)
 	if err != nil {
 		return
