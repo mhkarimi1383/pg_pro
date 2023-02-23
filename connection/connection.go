@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 
 	"github.com/mhkarimi1383/pg_pro/config"
 	"github.com/mhkarimi1383/pg_pro/utils"
@@ -28,17 +29,17 @@ func init() {
 		src := source.(map[string]any)
 		cfg, err := pgxpool.ParseConfig(fmt.Sprintf("%v", src["url"]))
 		if err != nil {
-			panic(err)
+			panic(errors.Wrap(err, "pgxpool config parse"))
 		}
 
 		minConns, err := strconv.Atoi(fmt.Sprintf("%v", src["min_conns"]))
 		if err != nil {
-			panic(err)
+			panic(errors.Wrap(err, "converting min_conns to number"))
 		}
 		cfg.MinConns = int32(minConns)
 		maxConns, err := strconv.Atoi(fmt.Sprintf("%v", src["max_conns"]))
 		if err != nil {
-			panic(err)
+			panic(errors.Wrap(err, "converting max_conns to number"))
 		}
 		cfg.MaxConns = int32(maxConns)
 		pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
@@ -58,7 +59,7 @@ func init() {
 func RunQuery(q string, master bool) (result *QueryResult, err error) {
 	result = new(QueryResult)
 	var pool *pgxpool.Pool
-	if master {
+	if master || len(readPools) == 0 {
 		pool = writePools[rand.Intn(len(writePools))]
 	} else {
 		pool = readPools[rand.Intn(len(readPools))]

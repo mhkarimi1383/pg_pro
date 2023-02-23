@@ -31,6 +31,13 @@ func Info(msg string, fields ...zapcore.Field) {
 	)
 }
 
+func Debug(msg string, fields ...zapcore.Field) {
+	logger.Debug(
+		msg,
+		fields...,
+	)
+}
+
 func Sync() {
 	logger.Sync()
 }

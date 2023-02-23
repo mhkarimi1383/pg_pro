@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -75,7 +74,11 @@ func handleConnection(conn net.Conn) error {
 		return err
 	}
 
-	fmt.Printf("Received startup message: %+v\n", startupMsg)
+	logger.Info(
+		"received startup message",
+		zap.String("event", "new connection"),
+	)
+
 	backend.SetAuthType(pgproto3.AuthTypeMD5Password)
 	switch startupMsg.(type) {
 	case *pgproto3.StartupMessage:
@@ -86,10 +89,16 @@ func handleConnection(conn net.Conn) error {
 		}
 		msg, err := backend.Receive()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "receive message from client")
 		}
 		msgPass := msg.(*pgproto3.PasswordMessage)
-		fmt.Printf("entered password: %v, %v\n", msgPass.Password, err)
+
+		logger.Debug(
+			"got password message",
+			zap.String("event", "authentication"),
+			zap.String("password", msgPass.Password),
+		)
+
 		buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
 		_, err = conn.Write(buf)
 		if err != nil {
@@ -110,7 +119,10 @@ func handleConnection(conn net.Conn) error {
 		return errors.Errorf("unknown startup message: %#v", startupMsg)
 	}
 
-	fmt.Println("user logged in")
+	logger.Debug(
+		"user logged in",
+		zap.String("event", "authentication"),
+	)
 	// Read and handle incoming messages
 	for {
 		msg, err := backend.Receive()
@@ -120,7 +132,11 @@ func handleConnection(conn net.Conn) error {
 
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
-			fmt.Printf("Received query: %s\n", msg.String)
+			logger.Debug(
+				"received query",
+				zap.String("event", "running_query"),
+				zap.String("query", msg.String),
+			)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
 				buf := (&pgproto3.ErrorResponse{
@@ -146,7 +162,6 @@ func handleConnection(conn net.Conn) error {
 				}
 				continue
 			}
-			fmt.Printf("%+v\n", accessInfo)
 			isRead := true
 			for _, i := range accessInfo {
 				if i.AccessMode != queryhelper.Select {
@@ -222,9 +237,11 @@ func handleConnection(conn net.Conn) error {
 			if err != nil {
 				return errors.Wrap(err, "writing query response")
 			}
-			log.Println(string(buf))
 		case *pgproto3.Terminate:
-			fmt.Println("Received terminate message")
+			logger.Info(
+				"received terminate message",
+				zap.String("event", "termination"),
+			)
 			return nil
 		default:
 			return errors.Errorf("received unhandled message: %+v", msg)
