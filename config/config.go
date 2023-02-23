@@ -50,6 +50,10 @@ func GetInt(key string) int {
 	return viper.GetInt(key)
 }
 
+func GetInt64(key string) int64 {
+	return viper.GetInt64(key)
+}
+
 func GetDuration(key string) time.Duration {
 	return viper.GetDuration(key)
 }

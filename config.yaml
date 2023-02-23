@@ -21,3 +21,46 @@ cache:
   # backend: freecache
   # ttl: 10 # in seconds
   # connection_info: 10240000000 ## maximum cache size in bytes (at least 524288)
+
+  # backend: go-cache
+  # ttl: 10 # in seconds
+  # connection_info: 6000 ## purge interval (in second)
+
+  # backend: pegasus
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   - "127.0.0.1:6379"
+  #   - "127.0.0.1:6380"
+  #   - "127.0.0.1:6381"
+
+  # backend: redis
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   addr: 127.0.0.1:6379
+  #   password: ""
+  #   db: 0
+
+  # backend: rediscluster
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   addrs:
+  #     - 127.0.0.1:6379
+  #     - 127.0.0.1:6380
+  #     - 127.0.0.1:6381
+  #   password: ""
+
+  # backend: ristretto
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   max_cost: 10240000000 ## maximum cost of cache (in bytes)
+  #   max_counters: 10000000 ## number of keys to track frequency of (in bytes)
+  #   buffer_items: 64 ## number of keys per Get buffer
+
+  # backend: rueidis
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   addrs:
+  #     - 127.0.0.1:6379
+  #     - 127.0.0.1:6380
+  #     - 127.0.0.1:6381
+  #   password: ""
