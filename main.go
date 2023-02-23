@@ -168,7 +168,7 @@ func handleConnection(conn net.Conn) error {
 					isRead = false
 				}
 			}
-			result, err := connection.RunQuery(msg.String, !isRead)
+			result, err := connection.RunQuery(msg.String, isRead)
 			if err != nil {
 				switch e := err.(type) {
 				case *pgconn.PgError:

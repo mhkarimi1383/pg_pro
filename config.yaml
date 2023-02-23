@@ -6,3 +6,18 @@ sources:
     min_conns: 1
     max_conns: 15
     mode: master # could be master or slave
+
+cache:
+  # backend: memcached
+  # ttl: 10 # in seconds
+  # connection_info:
+  #   - "10.0.0.1:11211"
+  #   - "10.0.0.2:11211"
+  #   - "10.0.0.3:11212"
+
+  # backend: bigcache
+  # ttl: 10 # in seconds
+
+  # backend: freecache
+  # ttl: 10 # in seconds
+  # connection_info: 10240000000 ## maximum cache size in bytes (at least 524288)

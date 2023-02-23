@@ -56,13 +56,13 @@ func init() {
 	}
 }
 
-func RunQuery(q string, master bool) (result *QueryResult, err error) {
+func RunQuery(q string, readOperation bool) (result *QueryResult, err error) {
 	result = new(QueryResult)
 	var pool *pgxpool.Pool
-	if master || len(readPools) == 0 {
-		pool = writePools[rand.Intn(len(writePools))]
-	} else {
+	if readOperation && len(readPools) > 0 {
 		pool = readPools[rand.Intn(len(readPools))]
+	} else {
+		pool = writePools[rand.Intn(len(writePools))]
 	}
 	rows, err := pool.Query(context.Background(), q)
 	if err != nil {

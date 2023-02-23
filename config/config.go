@@ -1,6 +1,10 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 func init() {
 	viper.SetConfigName("config")
@@ -22,6 +26,10 @@ func GetSlice(key string) []any {
 	return viper.Get(key).([]any)
 }
 
+func GetStringSlice(key string) []string {
+	return viper.Get(key).([]string)
+}
+
 func GetUint(key string) uint {
 	return viper.GetUint(key)
 }
@@ -36,4 +44,12 @@ func GetString(key string) string {
 
 func GetInt32(key string) int32 {
 	return viper.GetInt32(key)
+}
+
+func GetInt(key string) int {
+	return viper.GetInt(key)
+}
+
+func GetDuration(key string) time.Duration {
+	return viper.GetDuration(key)
 }
