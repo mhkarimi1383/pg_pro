@@ -43,3 +43,5 @@ a Working go environment
 you have to set `CGO_ENABLED=1`, since we are using [pganalyze/pg_query_go](https://github.com/pganalyze/pg_query_go) to parse queries
 
 I would recommend to use [cosmtrek/air](https://github.com/cosmtrek/air) for hot reloading and having up-to-data `go build` options
+
+or you can just use `docker` to build/deploy the project
