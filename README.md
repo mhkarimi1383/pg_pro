@@ -20,13 +20,13 @@ As for loadbalancing goes that's great to loadbalance connections to servers in 
 
 For caching I want to make it posible to use any kind of caching for your database, since postgresql caching parameters are so hard to configure them in a good way.
 
-## How the loadbalancer works
+## How loadbalancer works
 
 When project starts it will make a connection pool to each server that is listed in the `config.yaml` file
 
-when a quey came, it will parse given query, then it will return an error to user (if there is an error in the query)
+when a quey comes, it will parse given query, then it will return an error to user (if there is any error within the query)
 
-when we know the type of the query (read or write), we will select one of the servers to loadbalance between them
+we will select one of the servers to loadbalance between them
 
 ## Configuration
 
@@ -35,3 +35,11 @@ Checkout `config.yaml` file this file could be in one of theas directories:
 - /etc/pg_pro/
 - $HOME/.pg_pro
 - $PWD
+
+## Building/Local Development
+
+a Working go environment
+
+you have to set `CGO_ENABLED=1`, since we are using [pganalyze/pg_query_go](https://github.com/pganalyze/pg_query_go) to parse queries
+
+I would recommend to use [cosmtrek/air](https://github.com/cosmtrek/air) for hot reloading and having up-to-data `go build` options
