@@ -11,7 +11,7 @@ var (
 
 func init() {
 	var err error
-	logger, err = zap.NewProduction()
+	logger, err = zap.NewProduction(zap.AddCallerSkip(1))
 	if err != nil {
 		panic(err)
 	}
@@ -33,6 +33,13 @@ func Info(msg string, fields ...zapcore.Field) {
 
 func Debug(msg string, fields ...zapcore.Field) {
 	logger.Debug(
+		msg,
+		fields...,
+	)
+}
+
+func Warn(msg string, fields ...zapcore.Field) {
+	logger.Warn(
 		msg,
 		fields...,
 	)

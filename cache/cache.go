@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"time"
 
 	"github.com/allegro/bigcache/v3"
@@ -25,11 +27,12 @@ import (
 	"github.com/rueian/rueidis"
 
 	"github.com/mhkarimi1383/pg_pro/config"
+	"github.com/mhkarimi1383/pg_pro/types"
 )
 
 var (
 	ctx          context.Context
-	cacheManager *cache.Cache[[]byte]
+	cacheManager *cache.Cache[[]byte] // We are converting data to `[]byte` using `gob`, to be compatible with all of the cache backends
 )
 
 func init() {
@@ -128,19 +131,39 @@ func init() {
 			storeOpts...,
 		)
 		cacheManager = cache.New[[]byte](rueidisStore)
+	default:
+		panic("invalid cache backend")
 	}
+	if cacheManager == nil {
+		panic("invalid cache backend or invalid configuration")
+	}
+}
 
-	// err := cacheManager.Set(ctx, "my-key", []byte("my-value"),
-	// 	store.WithExpiration(15*time.Second), // Override default value of 10 seconds defined in the store
-	// )
-	// if err != nil {
-	// 	panic(err)
-	// }
+func Get(q string) (result *types.QueryResult, err error) {
+	value, err := cacheManager.Get(ctx, []byte(q))
+	if err != nil {
+		return
+	}
+	gres := types.QueryResult{}
+	reader := bytes.NewReader(value)
+	dec := gob.NewDecoder(reader)
+	if err := dec.Decode(&gres); err != nil {
+		return nil, err
+	}
+	result = &gres
+	return
+}
 
-	// value, _ := cacheManager.Get(ctx, "my-key")
-	// log.Println(value)
+func Clear() error {
+	return cacheManager.Clear(ctx)
+}
 
-	// cacheManager.Delete(ctx, "my-key")
-
-	// cacheManager.Clear(ctx) // Clears the entire cache, in case you want to flush all cache
+func Set(q string, result *types.QueryResult) (err error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(result); err != nil {
+		return err
+	}
+	err = cacheManager.Set(ctx, []byte(q), buf.Bytes())
+	return
 }

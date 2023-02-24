@@ -9,15 +9,14 @@ import (
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
+	"github.com/mhkarimi1383/pg_pro/cache"
 	"github.com/mhkarimi1383/pg_pro/config"
+	"github.com/mhkarimi1383/pg_pro/logger"
+	"github.com/mhkarimi1383/pg_pro/types"
 	"github.com/mhkarimi1383/pg_pro/utils"
 )
-
-type QueryResult struct {
-	pgproto3.RowDescription
-	DataRows []pgproto3.DataRow
-}
 
 var (
 	writePools []*pgxpool.Pool
@@ -56,8 +55,25 @@ func init() {
 	}
 }
 
-func RunQuery(q string, readOperation bool) (result *QueryResult, err error) {
-	result = new(QueryResult)
+func RunQuery(q string, readOperation bool) (result *types.QueryResult, err error) {
+	defer func() {
+		if err == nil && readOperation {
+			cacheSetErr := cache.Set(q, result)
+			if cacheSetErr != nil {
+				logger.Warn(cacheSetErr.Error(), zap.String("event", "cache_set"))
+			}
+		}
+	}()
+	result = new(types.QueryResult)
+	cacheResult, err := cache.Get(q)
+	if readOperation && err == nil && cacheResult != nil {
+		result = cacheResult
+		return
+	}
+	if err != nil {
+		logger.Warn(errors.Wrap(err, "error while reading cached data, using postgresql itself").Error(), zap.String("event", "cache_read"))
+		err = nil
+	}
 	var pool *pgxpool.Pool
 	if readOperation && len(readPools) > 0 {
 		pool = readPools[rand.Intn(len(readPools))]
