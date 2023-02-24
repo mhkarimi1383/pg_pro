@@ -56,8 +56,9 @@ func init() {
 }
 
 func RunQuery(q string, readOperation bool) (result *types.QueryResult, err error) {
+	fromCache := false
 	defer func() {
-		if err == nil && readOperation {
+		if err == nil && readOperation && !fromCache {
 			cacheSetErr := cache.Set(q, result)
 			if cacheSetErr != nil {
 				logger.Warn(cacheSetErr.Error(), zap.String("event", "cache_set"))
@@ -68,6 +69,7 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 	cacheResult, err := cache.Get(q)
 	if readOperation && err == nil && cacheResult != nil {
 		result = cacheResult
+		fromCache = true
 		return
 	}
 	if err != nil {
