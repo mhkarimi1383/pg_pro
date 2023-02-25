@@ -1,5 +1,7 @@
 # pg_pro
 
+![banner](./assets/banner.jpg)
+
 We want to achieve to a great layer over PostgreSQL, with caching, advanced user management and master/replica load balancing.
 
 ## Features
