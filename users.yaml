@@ -1,0 +1,4 @@
+karimi:
+  superuser: true
+  password: hh
+  tables: null

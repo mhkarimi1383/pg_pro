@@ -11,7 +11,6 @@ cache:
   backend: bigcache
   ttl: 10 # in seconds
 
-
   # backend: memcached
   # ttl: 10 # in seconds
   # connection_info:
@@ -65,3 +64,7 @@ cache:
   #     - 127.0.0.1:6380
   #     - 127.0.0.1:6381
   #   password: ""
+
+auth:
+  provider: yaml
+  path: ./users.yaml

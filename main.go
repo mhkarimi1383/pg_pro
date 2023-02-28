@@ -11,10 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/mhkarimi1383/pg_pro/auth"
 	"github.com/mhkarimi1383/pg_pro/config"
 	"github.com/mhkarimi1383/pg_pro/connection"
 	"github.com/mhkarimi1383/pg_pro/logger"
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
+	"github.com/mhkarimi1383/pg_pro/types"
 )
 
 func main() {
@@ -78,11 +80,13 @@ func handleConnection(conn net.Conn) error {
 		"received startup message",
 		zap.String("event", "new connection"),
 	)
-
+	username := ""
 	backend.SetAuthType(pgproto3.AuthTypeMD5Password)
 	switch startupMsg.(type) {
 	case *pgproto3.StartupMessage:
-		buf := (&pgproto3.AuthenticationMD5Password{}).Encode(nil)
+		buf := (&pgproto3.AuthenticationMD5Password{
+			Salt: [4]byte{},
+		}).Encode(nil)
 		_, err = conn.Write(buf)
 		if err != nil {
 			return errors.Wrap(err, "sending AuthenticationMD5Password to client")
@@ -93,12 +97,11 @@ func handleConnection(conn net.Conn) error {
 		}
 		msgPass := msg.(*pgproto3.PasswordMessage)
 
-		logger.Debug(
+		logger.Info(
 			"got password message",
 			zap.String("event", "authentication"),
 			zap.String("password", msgPass.Password),
 		)
-
 		buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
 		_, err = conn.Write(buf)
 		if err != nil {
@@ -109,6 +112,7 @@ func handleConnection(conn net.Conn) error {
 		if err != nil {
 			return errors.Wrap(err, "sending ready for query to client")
 		}
+		username = startupMsg.(*pgproto3.StartupMessage).Parameters["user"]
 	case *pgproto3.SSLRequest:
 		_, err = conn.Write([]byte("N"))
 		if err != nil {
@@ -124,6 +128,7 @@ func handleConnection(conn net.Conn) error {
 		zap.String("event", "authentication"),
 	)
 	// Read and handle incoming messages
+mainLoop:
 	for {
 		msg, err := backend.Receive()
 		if err != nil {
@@ -164,7 +169,31 @@ func handleConnection(conn net.Conn) error {
 			}
 			isRead := true
 			for _, i := range accessInfo {
-				if i.AccessMode != queryhelper.Select {
+				switch auth.GetProvider().CheckAccess(i, username) {
+				case false:
+					buf := (&pgproto3.ErrorResponse{
+						Code:       "42501",
+						SchemaName: i.Schema,
+						TableName:  i.Name,
+						Message:    "You don't have access here",
+					}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing query error response")
+					}
+					buf = (&pgproto3.CommandComplete{}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing CommandComplete response")
+					}
+					buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing ReadyForQuery response")
+					}
+					continue mainLoop
+				}
+				if i.AccessMode != types.Select {
 					isRead = false
 				}
 			}
