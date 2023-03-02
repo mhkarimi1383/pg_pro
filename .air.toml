@@ -11,14 +11,14 @@ exclude_dir = ["assets", "tmp", "vendor", "testdata"]
 exclude_file = []
 exclude_regex = ["_test.go"]
 exclude_unchanged = false
-follow_symlink = false
+follow_symlink = true
 full_bin = ""
 include_dir = []
 include_ext = ["go", "tpl", "tmpl", "html"]
 include_file = ["config.yaml"]
-kill_delay = "0s"
+kill_delay = 2000
 log = "build-errors.log"
-rerun = false
+rerun = true
 rerun_delay = 2000
 send_interrupt = false
 stop_on_error = false
@@ -38,5 +38,5 @@ time = false
 clean_on_exit = true
 
 [screen]
-clear_on_rebuild = false
+clear_on_rebuild = true
 keep_scroll = true
