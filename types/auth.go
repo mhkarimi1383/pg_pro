@@ -2,24 +2,21 @@ package types
 
 import (
 	"crypto/md5"
-	"encoding/hex"
 	"fmt"
-	"io"
-	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
-var salt [4]byte = [4]byte{}
+var MD5AuthSalt [4]byte = [4]byte{'1', '2', '3', '4'}
 
 type YAMLFileAuthProviderConfigUser struct {
 	Superuser bool   `yaml:"superuser"`
 	Password  string `yaml:"password"`
 	Tables    []struct {
-		Name       string `yaml:"name"`
-		Schema     string `yaml:"schema"`
-		AccessMode string `yaml:"access_mode"`
+		Name        string   `yaml:"name"`
+		Schema      string   `yaml:"schema"`
+		AccessModes []string `yaml:"access_modes"`
 	} `yaml:"tables"`
 }
 
@@ -43,18 +40,34 @@ func (p *YAMLFileAuthProvider) SetConfig(configFilePath string) error {
 	return nil
 }
 
-func hexMD5(s string) string {
-	hash := md5.New()
-	io.WriteString(hash, s)
-	return hex.EncodeToString(hash.Sum(nil))
+func md5s(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func encodeMD5Password(username, password, salt string) string {
+	hashedCreds := md5s(username + password)
+	return "md5" + md5s(hashedCreds+salt)
+}
+
+func (p *YAMLFileAuthProvider) CheckAuth(username, password string) bool {
+	md5Pass := encodeMD5Password(p.config[username].Password, username, string(MD5AuthSalt[:]))
+	return md5Pass == password
 }
 
 func (p *YAMLFileAuthProvider) CheckAccess(accessInfo TableAccessInfo, username string) bool {
-	fmt.Printf("p.config[username]: %+v\n", p.config[username])
-	println(p.config[username].Password + username)
-	log.Println("md5" + hexMD5(hexMD5(p.config[username].Password+username)) + string(salt[:]))
 	if p.config[username].Superuser {
 		return true
+	}
+	for _, table := range p.config[username].Tables {
+		if table.Name == accessInfo.Name && table.Schema == accessInfo.Schema {
+			for _, mode := range table.AccessModes {
+				if mode == accessInfo.AccessMode.ToString() {
+					return true
+				}
+			}
+		}
 	}
 	return false
 }

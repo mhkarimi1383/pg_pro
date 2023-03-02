@@ -50,6 +50,7 @@ func init() {
 			}
 		}
 	}
+	// TODO: Add support for mutiple write destinations (e.g. for data-warehousing and data-lake)
 	if len(writePools) > 1 {
 		panic("multiple write connections provided")
 	}

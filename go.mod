@@ -25,6 +25,7 @@ require (
 	github.com/rueian/rueidis v0.0.93
 	github.com/spf13/viper v1.15.0
 	go.uber.org/zap v1.24.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -69,6 +70,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apimachinery v0.0.0-20191123233150-4c4803ed55e3 // indirect
 )

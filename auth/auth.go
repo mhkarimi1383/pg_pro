@@ -14,7 +14,10 @@ func init() {
 	switch providerName {
 	case "yaml":
 		provider = new(types.YAMLFileAuthProvider)
-		provider.(*types.YAMLFileAuthProvider).SetConfig(config.GetString("auth.path"))
+		err := provider.(*types.YAMLFileAuthProvider).SetConfig(config.GetString("auth.path"))
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

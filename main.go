@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -85,7 +86,7 @@ func handleConnection(conn net.Conn) error {
 	switch startupMsg.(type) {
 	case *pgproto3.StartupMessage:
 		buf := (&pgproto3.AuthenticationMD5Password{
-			Salt: [4]byte{},
+			Salt: types.MD5AuthSalt,
 		}).Encode(nil)
 		_, err = conn.Write(buf)
 		if err != nil {
@@ -96,13 +97,22 @@ func handleConnection(conn net.Conn) error {
 			return errors.Wrap(err, "receive message from client")
 		}
 		msgPass := msg.(*pgproto3.PasswordMessage)
-
 		logger.Info(
 			"got password message",
 			zap.String("event", "authentication"),
 			zap.String("password", msgPass.Password),
 		)
-		buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
+		username = startupMsg.(*pgproto3.StartupMessage).Parameters["user"]
+		log.Println(username)
+		if auth.GetProvider().CheckAuth(username, msgPass.Password) {
+			buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
+		} else {
+			buf = (&pgproto3.ErrorResponse{
+				Severity: "ERROR",
+				Code:     "28000", // 28P01 - invalid password
+				Message:  "password authentication failed for user",
+			}).Encode(nil)
+		}
 		_, err = conn.Write(buf)
 		if err != nil {
 			return errors.Wrap(err, "sending AuthenticationOk to client")
@@ -112,7 +122,6 @@ func handleConnection(conn net.Conn) error {
 		if err != nil {
 			return errors.Wrap(err, "sending ready for query to client")
 		}
-		username = startupMsg.(*pgproto3.StartupMessage).Parameters["user"]
 	case *pgproto3.SSLRequest:
 		_, err = conn.Write([]byte("N"))
 		if err != nil {

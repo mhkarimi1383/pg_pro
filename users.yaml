@@ -1,4 +1,12 @@
-karimi:
+user_1:
   superuser: true
-  password: hh
-  tables: null
+  password: superdupersecret
+  tables:
+    - name: users
+      schema: public
+      access_modes:
+        - "SELECT"
+        - "DELETE"
+        - "INSERT"
+        - "UPDATE"
+        - "SYSTEM"

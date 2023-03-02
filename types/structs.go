@@ -26,8 +26,8 @@ const (
 	defaultSchemaName = "public"
 )
 
-func (tam TableAccessMode) ToString(index TableAccessMode) string {
-	return []string{"SELECT", "DELETE", "INSERT", "UPDATE", "SYSTEM", "INVALID"}[index]
+func (tam TableAccessMode) ToString() string {
+	return []string{"SELECT", "DELETE", "INSERT", "UPDATE", "SYSTEM", "INVALID"}[tam]
 }
 
 func TableAccessModeFromString(s string) (index TableAccessMode, err error) {

@@ -66,5 +66,5 @@ cache:
   #   password: ""
 
 auth:
-  provider: yaml
-  path: ./users.yaml
+  provider: yaml ## name of the auth provider (only `yaml` is supported for now)
+  path: ./users.yaml ## users `yaml` file name
