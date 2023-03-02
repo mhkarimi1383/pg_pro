@@ -1,5 +1,0 @@
-{
-  "yaml.schemas": {
-    "https://raw.githubusercontent.com/dcermak/vscode-rke-cluster-config/main/schemas/cluster.yml.json": "file:///home/karimi/cluster_recovery.yml"
-  }
-}
