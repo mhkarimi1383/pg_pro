@@ -67,15 +67,17 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 		}
 	}()
 	result = new(types.QueryResult)
-	cacheResult, err := cache.Get(q)
-	if readOperation && err == nil && cacheResult != nil {
-		result = cacheResult
-		fromCache = true
-		return
-	}
-	if err != nil {
-		logger.Warn(errors.Wrap(err, "error while reading cached data, using postgresql itself").Error(), zap.String("event", "cache_read"))
-		err = nil
+	if readOperation {
+		cacheResult, err := cache.Get(q)
+		if err == nil && cacheResult != nil {
+			result = cacheResult
+			fromCache = true
+			return result, nil
+		}
+		if err != nil {
+			logger.Warn(errors.Wrap(err, "error while reading cached data, using postgresql itself").Error(), zap.String("event", "cache_read"))
+			err = nil
+		}
 	}
 	var pool *pgxpool.Pool
 	if readOperation && len(readPools) > 0 {
