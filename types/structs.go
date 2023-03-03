@@ -8,7 +8,8 @@ import (
 
 type QueryResult struct {
 	pgproto3.RowDescription
-	DataRows []pgproto3.DataRow
+	DataRows   []pgproto3.DataRow
+	CommandTag []byte
 }
 
 type TableAccessMode int64

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -103,7 +102,6 @@ func handleConnection(conn net.Conn) error {
 			zap.String("password", msgPass.Password),
 		)
 		username = startupMsg.(*pgproto3.StartupMessage).Parameters["user"]
-		log.Println(username)
 		if auth.GetProvider().CheckAuth(username, msgPass.Password) {
 			buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
 		} else {
@@ -233,7 +231,9 @@ mainLoop:
 					if err != nil {
 						return errors.Wrap(err, "writing query error response")
 					}
-					buf = (&pgproto3.CommandComplete{}).Encode(nil)
+					buf = (&pgproto3.CommandComplete{
+						CommandTag: result.CommandTag,
+					}).Encode(nil)
 					_, err = conn.Write(buf)
 					if err != nil {
 						return errors.Wrap(err, "writing CommandComplete response")
@@ -265,7 +265,9 @@ mainLoop:
 			if err != nil {
 				return errors.Wrap(err, "writing query response")
 			}
-			buf = (&pgproto3.CommandComplete{}).Encode(nil)
+			buf = (&pgproto3.CommandComplete{
+				CommandTag: result.CommandTag,
+			}).Encode(nil)
 			_, err = conn.Write(buf)
 			if err != nil {
 				return errors.Wrap(err, "writing query response")

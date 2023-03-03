@@ -89,6 +89,10 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 	if err != nil {
 		return
 	}
+	defer rows.Close()
+	// FIXME: not working (value is empty)...
+	result.CommandTag = []byte(rows.CommandTag().String())
+
 	for _, desc := range rows.FieldDescriptions() {
 		result.RowDescription.Fields = append(result.RowDescription.Fields, pgproto3.FieldDescription{
 			Name:                 []byte(desc.Name),
@@ -101,6 +105,7 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 		})
 	}
 	for rows.Next() {
+		// rows.RawValues() is not working (for example some numberic datas will get broken)
 		values, rowValuesErr := rows.Values()
 		if rowValuesErr != nil {
 			return nil, rowValuesErr
