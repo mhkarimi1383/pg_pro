@@ -172,7 +172,7 @@ mainLoop:
 				if err != nil {
 					return errors.Wrap(err, "writing ReadyForQuery response")
 				}
-				continue
+				continue mainLoop
 			}
 			isRead := true
 			for _, i := range accessInfo {
@@ -243,29 +243,35 @@ mainLoop:
 					if err != nil {
 						return errors.Wrap(err, "writing ReadyForQuery response")
 					}
-					continue
+					continue mainLoop
 				default:
 					return errors.Wrap(err, "getting result from postgres")
 				}
-
 			}
-
-			buf := (&result.RowDescription).Encode(nil)
-			_, err = conn.Write(buf)
-			if err != nil {
-				return errors.Wrap(err, "writing query response")
-			}
-			for _, d := range result.DataRows {
-				buf = (&d).Encode(nil)
+			if len(result.DataRows) > 0 {
+				buf := (&result.RowDescription).Encode(nil)
+				_, err = conn.Write(buf)
+				if err != nil {
+					return errors.Wrap(err, "writing query response")
+				}
+				for _, d := range result.DataRows {
+					buf = (&d).Encode(nil)
+					_, err = conn.Write(buf)
+					if err != nil {
+						return errors.Wrap(err, "writing query response")
+					}
+				}
+				if err != nil {
+					return errors.Wrap(err, "writing query response")
+				}
+			} else {
+				buf := (&pgproto3.EmptyQueryResponse{}).Encode(nil)
 				_, err = conn.Write(buf)
 				if err != nil {
 					return errors.Wrap(err, "writing query response")
 				}
 			}
-			if err != nil {
-				return errors.Wrap(err, "writing query response")
-			}
-			buf = (&pgproto3.CommandComplete{
+			buf := (&pgproto3.CommandComplete{
 				CommandTag: result.CommandTag,
 			}).Encode(nil)
 			_, err = conn.Write(buf)
