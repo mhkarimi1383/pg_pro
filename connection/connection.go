@@ -3,6 +3,7 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 
@@ -87,11 +88,10 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 	}
 	rows, err := pool.Query(context.Background(), q)
 	if err != nil {
+		log.Println("err", err)
 		return
 	}
 	defer rows.Close()
-	// FIXME: not working (value is empty)...
-	result.CommandTag = []byte(rows.CommandTag().String())
 
 	for _, desc := range rows.FieldDescriptions() {
 		result.RowDescription.Fields = append(result.RowDescription.Fields, pgproto3.FieldDescription{
@@ -117,5 +117,9 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 		}
 		result.DataRows = append(result.DataRows, dataRow)
 	}
+	rows.Close()
+	log.Println(rows.CommandTag().String()) // For debugging
+	// FIXME: not working (value is empty)...
+	result.CommandTag = []byte(rows.CommandTag().String())
 	return
 }
