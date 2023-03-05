@@ -37,4 +37,7 @@ jobs:
         if: endsWith(github.ref, 'refs/tags/')
         with:
           prerelease: contains(github.ref, 'rc')
+          body: |
+            ${{ github.event.head_commit.message }}
+            Docker Image: ghcr.io/mhkarimi1383/pg_pro:${{ github.event.release.tag_name }}
           files: ./bin/pg_pro
