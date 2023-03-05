@@ -7,7 +7,7 @@ require (
 	github.com/bradfitz/gomemcache v0.0.0-20221031212613-62deef7fc822
 	github.com/coocood/freecache v1.2.3
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/eko/gocache/lib/v4 v4.1.2
+	github.com/eko/gocache/lib/v4 v4.1.3
 	github.com/eko/gocache/store/bigcache/v4 v4.1.2
 	github.com/eko/gocache/store/freecache/v4 v4.1.2
 	github.com/eko/gocache/store/go_cache/v4 v4.1.2
@@ -62,7 +62,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9 // indirect
-	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
