@@ -71,3 +71,7 @@ func (p *YAMLFileAuthProvider) CheckAccess(accessInfo TableAccessInfo, username 
 	}
 	return false
 }
+
+func (p *YAMLFileAuthProvider) IsSuperUser(username string) bool {
+	return p.config[username].Superuser
+}

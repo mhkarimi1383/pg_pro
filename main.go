@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -80,6 +81,7 @@ func handleConnection(conn net.Conn) error {
 		"received startup message",
 		zap.String("event", "new connection"),
 	)
+
 	username := ""
 	backend.SetAuthType(pgproto3.AuthTypeMD5Password)
 	switch startupMsg.(type) {
@@ -134,6 +136,25 @@ func handleConnection(conn net.Conn) error {
 		"user logged in",
 		zap.String("event", "authentication"),
 	)
+
+	buf := (&pgproto3.ParameterStatus{
+		Name:  "server_version",
+		Value: config.GetString("pg_version"),
+	}).Encode(nil)
+	_, err = conn.Write(buf)
+	if err != nil {
+		return errors.Wrap(err, "sending server_version to client")
+	}
+
+	buf = (&pgproto3.ParameterStatus{
+		Name:  "is_superuser",
+		Value: strconv.FormatBool(auth.GetProvider().IsSuperUser(username)),
+	}).Encode(nil)
+	_, err = conn.Write(buf)
+	if err != nil {
+		return errors.Wrap(err, "sending is_superuser to client")
+	}
+
 	// Read and handle incoming messages
 mainLoop:
 	for {
