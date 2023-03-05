@@ -18,7 +18,7 @@ require (
 	github.com/eko/gocache/store/ristretto/v4 v4.1.2
 	github.com/eko/gocache/store/rueidis/v4 v4.1.3
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/jackc/pgx/v5 v5.3.0
+	github.com/jackc/pgx/v5 v5.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pganalyze/pg_query_go/v4 v4.2.1-0.20230222080459-106c8c69f1db
 	github.com/pkg/errors v0.9.1
