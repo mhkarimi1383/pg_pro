@@ -16,6 +16,7 @@ import (
 	"github.com/mhkarimi1383/pg_pro/config"
 	"github.com/mhkarimi1383/pg_pro/connection"
 	"github.com/mhkarimi1383/pg_pro/logger"
+	msghelper "github.com/mhkarimi1383/pg_pro/msg_helper"
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 	"github.com/mhkarimi1383/pg_pro/types"
 )
@@ -86,17 +87,18 @@ func handleConnection(conn net.Conn) error {
 	backend.SetAuthType(pgproto3.AuthTypeMD5Password)
 	switch startupMsg.(type) {
 	case *pgproto3.StartupMessage:
-		buf := (&pgproto3.AuthenticationMD5Password{
+		err := msghelper.WriteMessage(&pgproto3.AuthenticationMD5Password{
 			Salt: types.MD5AuthSalt,
-		}).Encode(nil)
-		_, err = conn.Write(buf)
+		}, conn)
 		if err != nil {
-			return errors.Wrap(err, "sending AuthenticationMD5Password to client")
+			return err
 		}
+
 		msg, err := backend.Receive()
 		if err != nil {
 			return errors.Wrap(err, "receive message from client")
 		}
+
 		msgPass := msg.(*pgproto3.PasswordMessage)
 		logger.Info(
 			"got password message",
@@ -105,22 +107,23 @@ func handleConnection(conn net.Conn) error {
 		)
 		username = startupMsg.(*pgproto3.StartupMessage).Parameters["user"]
 		if auth.GetProvider().CheckAuth(username, msgPass.Password) {
-			buf = (&pgproto3.AuthenticationOk{}).Encode(nil)
+			err := msghelper.WriteMessage(&pgproto3.AuthenticationOk{}, conn)
+			if err != nil {
+				return err
+			}
 		} else {
-			buf = (&pgproto3.ErrorResponse{
+			err := msghelper.WriteMessage(&pgproto3.ErrorResponse{
 				Severity: "ERROR",
 				Code:     "28000", // 28P01 - invalid password
 				Message:  "password authentication failed for user",
-			}).Encode(nil)
+			}, conn)
+			if err != nil {
+				return err
+			}
 		}
-		_, err = conn.Write(buf)
+		err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
 		if err != nil {
-			return errors.Wrap(err, "sending AuthenticationOk to client")
-		}
-		buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
-		_, err = conn.Write(buf)
-		if err != nil {
-			return errors.Wrap(err, "sending ready for query to client")
+			return err
 		}
 	case *pgproto3.SSLRequest:
 		_, err = conn.Write([]byte("N"))
@@ -137,22 +140,20 @@ func handleConnection(conn net.Conn) error {
 		zap.String("event", "authentication"),
 	)
 
-	buf := (&pgproto3.ParameterStatus{
+	err = msghelper.WriteMessage(&pgproto3.ParameterStatus{
 		Name:  "server_version",
 		Value: config.GetString("pg_version"),
-	}).Encode(nil)
-	_, err = conn.Write(buf)
+	}, conn)
 	if err != nil {
-		return errors.Wrap(err, "sending server_version to client")
+		return err
 	}
 
-	buf = (&pgproto3.ParameterStatus{
+	err = msghelper.WriteMessage(&pgproto3.ParameterStatus{
 		Name:  "is_superuser",
 		Value: strconv.FormatBool(auth.GetProvider().IsSuperUser(username)),
-	}).Encode(nil)
-	_, err = conn.Write(buf)
+	}, conn)
 	if err != nil {
-		return errors.Wrap(err, "sending is_superuser to client")
+		return err
 	}
 
 	// Read and handle incoming messages
@@ -172,26 +173,25 @@ mainLoop:
 			)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
-				buf := (&pgproto3.ErrorResponse{
+				err = msghelper.WriteMessage(&pgproto3.ErrorResponse{
 					Message:  err.(*pg_query.Error).Message,
 					File:     err.(*pg_query.Error).Filename,
 					Detail:   err.(*pg_query.Error).Context,
 					Line:     int32(err.(*pg_query.Error).Lineno),
 					Position: int32(err.(*pg_query.Error).Cursorpos),
-				}).Encode(nil)
-				_, err = conn.Write(buf)
+				}, conn)
 				if err != nil {
-					return errors.Wrap(err, "writing query error response")
+					return err
 				}
-				buf = (&pgproto3.CommandComplete{}).Encode(nil)
-				_, err = conn.Write(buf)
+
+				err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
 				if err != nil {
-					return errors.Wrap(err, "writing CommandComplete response")
+					return err
 				}
-				buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
-				_, err = conn.Write(buf)
+
+				err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
 				if err != nil {
-					return errors.Wrap(err, "writing ReadyForQuery response")
+					return err
 				}
 				continue mainLoop
 			}
@@ -199,25 +199,24 @@ mainLoop:
 			for _, i := range accessInfo {
 				switch auth.GetProvider().CheckAccess(i, username) {
 				case false:
-					buf := (&pgproto3.ErrorResponse{
+					err := msghelper.WriteMessage(&pgproto3.ErrorResponse{
 						Code:       "42501",
 						SchemaName: i.Schema,
 						TableName:  i.Name,
 						Message:    "You don't have access here",
-					}).Encode(nil)
-					_, err = conn.Write(buf)
+					}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing query error response")
+						return err
 					}
-					buf = (&pgproto3.CommandComplete{}).Encode(nil)
-					_, err = conn.Write(buf)
+
+					err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing CommandComplete response")
+						return err
 					}
-					buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
-					_, err = conn.Write(buf)
+
+					err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing ReadyForQuery response")
+						return err
 					}
 					continue mainLoop
 				}
@@ -229,7 +228,7 @@ mainLoop:
 			if err != nil {
 				switch e := err.(type) {
 				case *pgconn.PgError:
-					buf := (&pgproto3.ErrorResponse{
+					err = msghelper.WriteMessage(&pgproto3.ErrorResponse{
 						Severity:         e.Severity,
 						Code:             e.Code,
 						Message:          e.Message,
@@ -247,63 +246,55 @@ mainLoop:
 						File:             e.File,
 						Line:             e.Line,
 						Routine:          e.Routine,
-					}).Encode(nil)
-					_, err = conn.Write(buf)
+					}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing query error response")
+						return err
 					}
-					buf = (&pgproto3.CommandComplete{
-						CommandTag: result.CommandTag,
-					}).Encode(nil)
-					_, err = conn.Write(buf)
+
+					err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing CommandComplete response")
+						return err
 					}
-					buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
-					_, err = conn.Write(buf)
+
+					err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing ReadyForQuery response")
+						return err
 					}
+
 					continue mainLoop
 				default:
 					return errors.Wrap(err, "getting result from postgres")
 				}
 			}
 			if len(result.DataRows) > 0 {
-				buf := (&result.RowDescription).Encode(nil)
-				_, err = conn.Write(buf)
+				err = msghelper.WriteMessage(&result.RowDescription, conn)
 				if err != nil {
-					return errors.Wrap(err, "writing query response")
+					return err
 				}
+
 				for _, d := range result.DataRows {
-					buf = (&d).Encode(nil)
-					_, err = conn.Write(buf)
+					err = msghelper.WriteMessage(&d, conn)
 					if err != nil {
-						return errors.Wrap(err, "writing query response")
+						return err
 					}
 				}
-				if err != nil {
-					return errors.Wrap(err, "writing query response")
-				}
 			} else {
-				buf := (&pgproto3.EmptyQueryResponse{}).Encode(nil)
-				_, err = conn.Write(buf)
+				err = msghelper.WriteMessage(&pgproto3.EmptyQueryResponse{}, conn)
 				if err != nil {
-					return errors.Wrap(err, "writing query response")
+					return err
 				}
 			}
-			buf := (&pgproto3.CommandComplete{
-				CommandTag: result.CommandTag,
-			}).Encode(nil)
-			_, err = conn.Write(buf)
+
+			err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
 			if err != nil {
-				return errors.Wrap(err, "writing query response")
+				return err
 			}
-			buf = (&pgproto3.ReadyForQuery{TxStatus: 'I'}).Encode(nil)
-			_, err = conn.Write(buf)
+
+			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
 			if err != nil {
-				return errors.Wrap(err, "writing query response")
+				return err
 			}
+
 		case *pgproto3.Terminate:
 			logger.Info(
 				"received terminate message",
