@@ -29,7 +29,7 @@ jobs:
       run: go mod download
 
     - name: Build
-      run: mkdir -p ./bin && go build -x . -o ./bin/pg_pro 
+      run: mkdir -p ./bin && go build -x -o ./bin/pg_pro .
   
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
