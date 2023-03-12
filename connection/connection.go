@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
 	"strconv"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -56,7 +58,7 @@ func init() {
 	}
 }
 
-func RunQuery(q string, readOperation bool) (result *types.QueryResult, err error) {
+func RunQuery(q string, readOperation bool, args ...any) (result *types.QueryResult, err error) {
 	fromCache := false
 	defer func() {
 		if err == nil && readOperation && !fromCache {
@@ -85,7 +87,7 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 	} else {
 		pool = writePools[rand.Intn(len(writePools))]
 	}
-	rows, err := pool.Query(context.Background(), q)
+	rows, err := pool.Query(context.Background(), q, args...)
 	if err != nil {
 		return
 	}
@@ -121,4 +123,21 @@ func RunQuery(q string, readOperation bool) (result *types.QueryResult, err erro
 	}
 	result.CommandTag = []byte(rows.CommandTag().String())
 	return
+}
+
+func RunExecute(q string, params ...any) (tag pgconn.CommandTag, err error) {
+	pool := writePools[rand.Intn(len(writePools))]
+	tag, err = pool.Exec(context.Background(), q, params...)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func GetRawConnection() (net.Conn, error) {
+	conn, err := writePools[rand.Intn(len(writePools))].Acquire(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return conn.Conn().PgConn().Conn(), nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strconv"
 
@@ -19,6 +20,7 @@ import (
 	msghelper "github.com/mhkarimi1383/pg_pro/msg_helper"
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 	"github.com/mhkarimi1383/pg_pro/types"
+	"github.com/mhkarimi1383/pg_pro/utils"
 )
 
 func main() {
@@ -111,6 +113,14 @@ func handleConnection(conn net.Conn) error {
 			if err != nil {
 				return err
 			}
+
+			err = msghelper.WriteMessage(&pgproto3.ParameterStatus{
+				Name:  "server_version",
+				Value: config.GetString("pg_version"),
+			}, conn)
+			if err != nil {
+				return err
+			}
 		} else {
 			err := msghelper.WriteMessage(&pgproto3.ErrorResponse{
 				Severity: "ERROR",
@@ -141,14 +151,6 @@ func handleConnection(conn net.Conn) error {
 	)
 
 	err = msghelper.WriteMessage(&pgproto3.ParameterStatus{
-		Name:  "server_version",
-		Value: config.GetString("pg_version"),
-	}, conn)
-	if err != nil {
-		return err
-	}
-
-	err = msghelper.WriteMessage(&pgproto3.ParameterStatus{
 		Name:  "is_superuser",
 		Value: strconv.FormatBool(auth.GetProvider().IsSuperUser(username)),
 	}, conn)
@@ -164,13 +166,13 @@ mainLoop:
 			return errors.Wrap(err, "receive client query")
 		}
 
+		logger.Info(
+			"received message",
+			zap.String("type", utils.GetType(msg)),
+		)
+
 		switch msg := msg.(type) {
 		case *pgproto3.Query:
-			logger.Debug(
-				"received query",
-				zap.String("event", "running_query"),
-				zap.String("query", msg.String),
-			)
 			accessInfo, err := queryhelper.GetRelatedTables(msg.String)
 			if err != nil {
 				err = msghelper.WriteMessage(&pgproto3.ErrorResponse{
@@ -295,14 +297,176 @@ mainLoop:
 				return err
 			}
 
+		case *pgproto3.Parse:
+			accessInfo, err := queryhelper.GetRelatedTables(msg.Query)
+			if err != nil {
+				err = msghelper.WriteMessage(&pgproto3.ErrorResponse{
+					Message:  err.(*pg_query.Error).Message,
+					File:     err.(*pg_query.Error).Filename,
+					Detail:   err.(*pg_query.Error).Context,
+					Line:     int32(err.(*pg_query.Error).Lineno),
+					Position: int32(err.(*pg_query.Error).Cursorpos),
+				}, conn)
+				if err != nil {
+					return err
+				}
+
+				err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
+				if err != nil {
+					return err
+				}
+
+				err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+				if err != nil {
+					return err
+				}
+				continue mainLoop
+			}
+			isRead := true
+			for _, i := range accessInfo {
+				switch auth.GetProvider().CheckAccess(i, username) {
+				case false:
+					err := msghelper.WriteMessage(&pgproto3.ErrorResponse{
+						Code:       "42501",
+						SchemaName: i.Schema,
+						TableName:  i.Name,
+						Message:    "You don't have access here",
+					}, conn)
+					if err != nil {
+						return err
+					}
+
+					err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
+					if err != nil {
+						return err
+					}
+
+					err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+					if err != nil {
+						return err
+					}
+					continue mainLoop
+				}
+				if i.AccessMode != types.Select {
+					isRead = false
+				}
+			}
+			ii := []any{}
+			for _, i := range msg.ParameterOIDs {
+				ii = append(ii, i)
+			}
+			result, err := connection.RunQuery(msg.Query, isRead, ii...)
+			log.Println("====================================")
+			log.Println(msg.Query, msg.ParameterOIDs)
+			log.Println("====================================")
+
+			if err != nil {
+				switch e := err.(type) {
+				case *pgconn.PgError:
+					err = msghelper.WriteMessage(&pgproto3.ErrorResponse{
+						Severity:         e.Severity,
+						Code:             e.Code,
+						Message:          e.Message,
+						Detail:           e.Detail,
+						Hint:             e.Hint,
+						Position:         e.Position,
+						InternalPosition: e.InternalPosition,
+						InternalQuery:    e.InternalQuery,
+						Where:            e.Where,
+						SchemaName:       e.SchemaName,
+						TableName:        e.TableName,
+						ColumnName:       e.ColumnName,
+						DataTypeName:     e.DataTypeName,
+						ConstraintName:   e.ConstraintName,
+						File:             e.File,
+						Line:             e.Line,
+						Routine:          e.Routine,
+					}, conn)
+					if err != nil {
+						return err
+					}
+
+					err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
+					if err != nil {
+						return err
+					}
+
+					err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+					if err != nil {
+						return err
+					}
+
+					continue mainLoop
+				default:
+					return errors.Wrap(err, "getting result from postgres")
+				}
+			}
+			if len(result.DataRows) > 0 {
+				err = msghelper.WriteMessage(&result.RowDescription, conn)
+				if err != nil {
+					return err
+				}
+
+				for _, d := range result.DataRows {
+					err = msghelper.WriteMessage(&d, conn)
+					if err != nil {
+						return err
+					}
+				}
+			} else {
+				err = msghelper.WriteMessage(&pgproto3.EmptyQueryResponse{}, conn)
+				if err != nil {
+					return err
+				}
+			}
+
+			err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
+			if err != nil {
+				return err
+			}
+
+			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+			if err != nil {
+				return err
+			}
+
 		case *pgproto3.Terminate:
 			logger.Info(
 				"received terminate message",
 				zap.String("event", "termination"),
 			)
 			return nil
+
+		case *pgproto3.Sync:
+			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+			if err != nil {
+				return err
+			}
+
+		case *pgproto3.Describe:
+			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+			if err != nil {
+				return err
+			}
+
 		default:
-			return errors.Errorf("received unhandled message: %+v", msg)
+			logger.Warn(fmt.Sprintf("received unhandled message of type %v: %+v sending to upstream directly\n", utils.GetType(msg), msg))
+			fConn, err := connection.GetRawConnection()
+			if err != nil {
+				return err
+			}
+
+			d, err := msghelper.WriteMessageAndRead(msg, fConn)
+			if err != nil {
+				return err
+			}
+
+			log.Println("d", len(d))
+
+			_, err = conn.Write(d)
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
