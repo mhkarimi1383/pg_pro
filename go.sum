@@ -327,8 +327,8 @@ github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.6.1 h1:/FiVV8dS/e+YqF2JvO3yXRFbBLTIuSDkuC7aBOAvL+k=
-github.com/rueian/rueidis v0.0.94 h1:Pe3YGVsDRDy7diU7ee5icAscQ3I/qBgnXOHQa1n6JzU=
-github.com/rueian/rueidis v0.0.94/go.mod h1:Ziv7p67TsXd3zAcQ5+BDdQvOsUE9N68u6JcA7/rE+x8=
+github.com/rueian/rueidis v0.0.95 h1:zrqNGlIH+YYokKxCCSEnOCIrjFVFb29IqNurQEVqXMc=
+github.com/rueian/rueidis v0.0.95/go.mod h1:Ziv7p67TsXd3zAcQ5+BDdQvOsUE9N68u6JcA7/rE+x8=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
