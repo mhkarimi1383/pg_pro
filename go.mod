@@ -13,7 +13,7 @@ require (
 	github.com/eko/gocache/store/go_cache/v4 v4.1.2
 	github.com/eko/gocache/store/memcache/v4 v4.1.2
 	github.com/eko/gocache/store/pegasus/v4 v4.1.2
-	github.com/eko/gocache/store/redis/v4 v4.1.2
+	github.com/eko/gocache/store/redis/v4 v4.2.0
 	github.com/eko/gocache/store/rediscluster/v4 v4.1.2
 	github.com/eko/gocache/store/ristretto/v4 v4.1.2
 	github.com/eko/gocache/store/rueidis/v4 v4.1.3
@@ -52,6 +52,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/redis/go-redis/v9 v9.0.2 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -61,7 +62,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
-	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9 // indirect
+	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
