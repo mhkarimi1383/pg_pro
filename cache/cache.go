@@ -31,9 +31,11 @@ import (
 	"github.com/mhkarimi1383/pg_pro/types"
 )
 
+type cacheType []byte
+
 var (
 	ctx          context.Context
-	cacheManager *cache.Cache[[]byte] // We are converting data to `[]byte` using `gob`, to be compatible with all of the cache backends
+	cacheManager *cache.Cache[cacheType] // We are converting data to `[]byte` using `gob`, to be compatible with all of the cache backends
 )
 
 func init() {
@@ -47,7 +49,7 @@ func init() {
 			memcache.New(config.GetStringSlice("cache.connection_info")...),
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](memcacheStore)
+		cacheManager = cache.New[cacheType](memcacheStore)
 	case "bigcache":
 		bigCacheClient, err := bigcache.New(ctx, bigcache.DefaultConfig(config.GetDuration("cache.ttl")+5*time.Second))
 		if err != nil {
@@ -57,19 +59,19 @@ func init() {
 			bigCacheClient,
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](bigcacheStore)
+		cacheManager = cache.New[cacheType](bigcacheStore)
 	case "freecache":
 		freecacheStore := freecache_store.NewFreecache(
 			freecache.NewCache(config.GetInt("cache.connection_info")),
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](freecacheStore)
+		cacheManager = cache.New[cacheType](freecacheStore)
 	case "go-cache":
 		gocacheStore := go_cache_store.NewGoCache(
 			go_cache.New(config.GetDuration("cache.ttl")+5*time.Second, config.GetDuration("cache.connection_info")+5*time.Second),
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](gocacheStore)
+		cacheManager = cache.New[cacheType](gocacheStore)
 	case "pegasus":
 		pegasusStore, err := pegasus_store.NewPegasus(
 			ctx,
@@ -83,7 +85,7 @@ func init() {
 		if err != nil {
 			panic(errors.Wrap(err, "inializing pegasus client"))
 		}
-		cacheManager = cache.New[[]byte](pegasusStore)
+		cacheManager = cache.New[cacheType](pegasusStore)
 	case "redis":
 		redisStore := redis_store.NewRedis(
 			redis.NewClient(&redis.Options{
@@ -93,7 +95,7 @@ func init() {
 			}),
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](redisStore)
+		cacheManager = cache.New[cacheType](redisStore)
 	case "rediscluster":
 		redisclusterStore := rediscluster_store.NewRedisCluster(
 			v8_redis.NewClusterClient(
@@ -104,7 +106,7 @@ func init() {
 			),
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](redisclusterStore)
+		cacheManager = cache.New[cacheType](redisclusterStore)
 	case "ristretto":
 		ristrettoClient, err := ristretto.NewCache(&ristretto.Config{
 			NumCounters: config.GetInt64("cache.connection_info.max_counter"),
@@ -118,7 +120,7 @@ func init() {
 			ristrettoClient,
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](ristrettoStore)
+		cacheManager = cache.New[cacheType](ristrettoStore)
 	case "rueidis":
 		rueidisclient, err := rueidis.NewClient(rueidis.ClientOption{
 			InitAddress: config.GetStringSlice("cache.connection_info.addrs"),
@@ -131,7 +133,7 @@ func init() {
 			rueidisclient,
 			storeOpts...,
 		)
-		cacheManager = cache.New[[]byte](rueidisStore)
+		cacheManager = cache.New[cacheType](rueidisStore)
 	default:
 		panic("invalid cache backend")
 	}
