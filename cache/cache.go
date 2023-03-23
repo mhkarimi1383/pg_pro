@@ -21,9 +21,10 @@ import (
 	rediscluster_store "github.com/eko/gocache/store/rediscluster/v4"
 	ristretto_store "github.com/eko/gocache/store/ristretto/v4"
 	rueidis_store "github.com/eko/gocache/store/rueidis/v4"
-	"github.com/go-redis/redis/v8"
+	v8_redis "github.com/go-redis/redis/v8"
 	go_cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"github.com/rueian/rueidis"
 
 	"github.com/mhkarimi1383/pg_pro/config"
@@ -95,8 +96,8 @@ func init() {
 		cacheManager = cache.New[[]byte](redisStore)
 	case "rediscluster":
 		redisclusterStore := rediscluster_store.NewRedisCluster(
-			redis.NewClusterClient(
-				&redis.ClusterOptions{
+			v8_redis.NewClusterClient(
+				&v8_redis.ClusterOptions{
 					Addrs:    config.GetStringSlice("cache.connection_info.addrs"),
 					Password: config.GetString("cache.connection_info.password"),
 				},
