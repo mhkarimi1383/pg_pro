@@ -2,7 +2,7 @@ package utils
 
 import "fmt"
 
-func GetBytes(key interface{}) []byte {
+func GetBytes(key any) []byte {
 	if key == nil {
 		return nil
 	}
