@@ -353,7 +353,7 @@ mainLoop:
 			}
 			ii := []any{}
 			for _, i := range msg.ParameterOIDs {
-				ii = append(ii, i)
+				ii = append(ii, strconv.Itoa(int(i)))
 			}
 			result, err := connection.RunQuery(msg.Query, isRead, ii...)
 			log.Println("====================================")
@@ -445,6 +445,13 @@ mainLoop:
 
 		case *pgproto3.Describe:
 			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+			if err != nil {
+				return err
+			}
+
+		// FIXME: not working, I was not able find currect required response from docs.
+		case *pgproto3.Execute:
+			err = msghelper.WriteMessage(&pgproto3.EmptyQueryResponse{}, conn)
 			if err != nil {
 				return err
 			}
