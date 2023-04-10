@@ -331,8 +331,8 @@ github.com/redis/go-redis/v9 v9.0.3 h1:+7mmR26M0IvyLxGZUHxu4GiBkJkVDid0Un+j4ScYu
 github.com/redis/go-redis/v9 v9.0.3/go.mod h1:WqMKv5vnQbRuZstUwxQI195wHy+t4PuXDOjzMvcuQHk=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.6.1 h1:/FiVV8dS/e+YqF2JvO3yXRFbBLTIuSDkuC7aBOAvL+k=
-github.com/rueian/rueidis v0.0.97 h1:b3jo3CatMd7Jak+Sbz8sPpasdUY/BziBsSjdzT5GQvc=
-github.com/rueian/rueidis v0.0.97/go.mod h1:ivvsRYRtAUcf9OnheuKc5Gpa8IebrkLT1P45Lr2jlXE=
+github.com/rueian/rueidis v0.0.98 h1:dYIcyxGokQJNTRaYngEeKJ0giwpZEHoyVGLiT+hC39o=
+github.com/rueian/rueidis v0.0.98/go.mod h1:ivvsRYRtAUcf9OnheuKc5Gpa8IebrkLT1P45Lr2jlXE=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
