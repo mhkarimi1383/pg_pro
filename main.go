@@ -356,6 +356,7 @@ mainLoop:
 				ii = append(ii, strconv.Itoa(int(i)))
 			}
 			result, err := connection.RunQuery(msg.Query, isRead, ii...)
+			log.Println(isRead)
 			log.Println("====================================")
 			log.Println(msg.Query, msg.ParameterOIDs)
 			log.Println("====================================")
@@ -382,6 +383,11 @@ mainLoop:
 						Line:             e.Line,
 						Routine:          e.Routine,
 					}, conn)
+					if err != nil {
+						return err
+					}
+
+					err = msghelper.WriteMessage(&pgproto3.CommandComplete{}, conn)
 					if err != nil {
 						return err
 					}
@@ -438,9 +444,11 @@ mainLoop:
 			return nil
 
 		case *pgproto3.Sync:
-			err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
-			if err != nil {
-				return err
+			for i := 0; i < 100; i++ {
+				err = msghelper.WriteMessage(&pgproto3.ReadyForQuery{TxStatus: 'I'}, conn)
+				if err != nil {
+					return err
+				}
 			}
 
 		case *pgproto3.Describe:
@@ -451,7 +459,29 @@ mainLoop:
 
 		// FIXME: not working, I was not able find currect required response from docs.
 		case *pgproto3.Execute:
-			err = msghelper.WriteMessage(&pgproto3.EmptyQueryResponse{}, conn)
+			// err = msghelper.WriteMessage(&pgproto3.EmptyQueryResponse{}, conn)
+			// if err != nil {
+			// 	return err
+			// }
+
+			log.Println("EXECUTE...")
+
+			fConn, err := connection.GetRawConnection()
+			if err != nil {
+				return err
+			}
+			log.Println("EXECUTE Conn...")
+
+			d, err := msghelper.WriteMessageAndRead(msg, fConn)
+			if err != nil {
+				return err
+			}
+			fConn.Close()
+
+			log.Println("d", len(d))
+			log.Println(string(d))
+
+			_, err = conn.Write(d)
 			if err != nil {
 				return err
 			}
@@ -467,6 +497,7 @@ mainLoop:
 			if err != nil {
 				return err
 			}
+			fConn.Close()
 
 			log.Println("d", len(d))
 

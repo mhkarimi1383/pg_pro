@@ -3,6 +3,7 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"strconv"
@@ -87,7 +88,7 @@ func RunQuery(q string, readOperation bool, args ...any) (result *types.QueryRes
 	} else {
 		pool = writePools[rand.Intn(len(writePools))]
 	}
-	rows, err := pool.Query(context.Background(), q, args...)
+	rows, err := pool.Query(context.TODO(), q, args...)
 	if err != nil {
 		return
 	}

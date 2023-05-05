@@ -6,7 +6,7 @@ pg_version: "15.1"
 sources:
   - url: postgresql://postgres:postgres@127.0.0.1:5432/postgres
     min_conns: 1
-    max_conns: 15
+    max_conns: 100
     mode: master # could be master or slave
 
 cache:
