@@ -4,6 +4,10 @@
 
 We want to achieve to a great layer over PostgreSQL, with caching, advanced user management and master/replica load balancing.
 
+
+## Stability
+We do not recommend to use this project right now wait for [this issue](https://github.com/mhkarimi1383/pg_pro/issues/24) to get done
+
 ## Features
 
 - [x] Parsing Query and checking relation info
