@@ -3,7 +3,6 @@ package connection
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"strconv"
