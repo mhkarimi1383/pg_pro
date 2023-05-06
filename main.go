@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"strconv"
@@ -21,52 +20,57 @@ import (
 	queryhelper "github.com/mhkarimi1383/pg_pro/query_helper"
 	"github.com/mhkarimi1383/pg_pro/types"
 	"github.com/mhkarimi1383/pg_pro/utils"
+	"github.com/mhkarimi1383/pg_pro/tcp_proxy"
 )
 
 func main() {
 	defer logger.Sync()
+
+	if err := tcpproxy.Serve(); err != nil {
+		panic(err)
+	}
 	// Listen on a port for incoming connections
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", config.Get("listen_port")))
-	if err != nil {
-		logger.Panic(
-			err.Error(),
-			zap.String("event", "listen"),
-			zap.Uint("port", config.GetUint("listen_port")),
-		)
-	}
-	defer ln.Close()
+	// ln, err := net.Listen("tcp", fmt.Sprintf(":%v", config.Get("listen_port")))
+	// if err != nil {
+	//	logger.Panic(
+	//		err.Error(),
+	//		zap.String("event", "listen"),
+	//		zap.Uint("port", config.GetUint("listen_port")),
+	//	)
+	// }
+	// defer ln.Close()
 
-	logger.Info(
-		"listener started",
-		zap.String("event", "listen"),
-		zap.Uint("port", config.GetUint("listen_port")),
-	)
+	// logger.Info(
+	//	"listener started",
+	//	zap.String("event", "listen"),
+	//	zap.Uint("port", config.GetUint("listen_port")),
+	// )
 	// Accept incoming connections
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			logger.Panic(
-				err.Error(),
-				zap.String("event", "accept"),
-				zap.Uint("port", config.GetUint("listen_port")),
-			)
-		}
+	// for {
+	//	conn, err := ln.Accept()
+	//	if err != nil {
+	//		logger.Panic(
+	//			err.Error(),
+	//			zap.String("event", "accept"),
+	//			zap.Uint("port", config.GetUint("listen_port")),
+	//		)
+	//	}
 
-		go func() {
-			err := handleConnection(conn)
-			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-				logger.Info(
-					"EOF error possibly a client disconected unexpectedly",
-					zap.String("event", "handle connection"),
-				)
-			} else if err != nil {
-				logger.Panic(
-					err.Error(),
-					zap.String("event", "handle connection"),
-				)
-			}
-		}()
-	}
+		// go func() {
+		//	err := handleConnection(conn)
+		//	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		//		logger.Info(
+		//			"EOF error possibly a client disconected unexpectedly",
+		//			zap.String("event", "handle connection"),
+		//		)
+		//	} else if err != nil {
+		//		logger.Panic(
+		//			err.Error(),
+		//			zap.String("event", "handle connection"),
+		//		)
+		//	}
+		// }()
+	// }
 }
 
 func handleConnection(conn net.Conn) error {

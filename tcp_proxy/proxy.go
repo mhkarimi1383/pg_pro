@@ -1,8 +1,6 @@
 package tcpproxy
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +10,32 @@ import (
 	"github.com/mhkarimi1383/pg_pro/config"
 )
 
-func proxyConn(conn *net.TCPConn) {
+func Serve() error {
+	addr, err := net.ResolveTCPAddr("tcp", ":"+config.GetString("listen_port"))
+	if err != nil {
+		return err
+	}
+
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Proxy server started on port %v", config.GetString("listen_port"))
+
+	for {
+		clientConn, err := listener.AcceptTCP()
+		if err != nil {
+			return err
+		}
+
+		go handleClient(clientConn)
+	}
+}
+
+func handleClient(cliConn *net.TCPConn) {
+	defer cliConn.Close()
+
 	rAddrStr := ""
 	sources := config.GetSlice("sources")
 	for _, source := range sources {
@@ -26,85 +49,44 @@ func proxyConn(conn *net.TCPConn) {
 		}
 	}
 
-	rAddr, err := net.ResolveTCPAddr("tcp", rAddrStr)
+	serverConn, err := net.Dial("tcp", rAddrStr)
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to connect to server: %s", err)
+		return
 	}
+	defer serverConn.Close()
 
-	rConn, err := net.DialTCP("tcp", nil, rAddr)
-	if err != nil {
-		panic(err)
-	}
-	defer rConn.Close()
-
-	buf := &bytes.Buffer{}
-	for {
-		data := make([]byte, 256)
-		var n int
-		n, err = conn.Read(data)
-		if err != nil {
-			panic(err)
-		}
-		buf.Write(data[:n])
-		if data[0] == 13 && data[1] == 10 {
-			break
-		}
-	}
-
-	if _, err = rConn.Write(buf.Bytes()); err != nil {
-		panic(err)
-	}
-	log.Printf("sent:\n%v", hex.Dump(buf.Bytes()))
-
-	data := make([]byte, 1024)
-	n, err := rConn.Read(data)
-	if err != nil {
-		if err != io.EOF {
-			panic(err)
-		} else {
-			log.Printf("received err: %v", err)
-		}
-	}
-	log.Printf("received:\n%v", hex.Dump(data[:n]))
+	Proxy(serverConn.(*net.TCPConn), cliConn)
 }
 
-func handleConn(in <-chan *net.TCPConn, out chan<- *net.TCPConn) {
-	for conn := range in {
-		proxyConn(conn)
-		out <- conn
+func Proxy(srvConn, cliConn *net.TCPConn) {
+	serverClosed := make(chan struct{}, 1)
+	clientClosed := make(chan struct{}, 1)
+
+	go broker(srvConn, cliConn, clientClosed)
+	go broker(cliConn, srvConn, serverClosed)
+
+	var waitFor chan struct{}
+	select {
+	case <-clientClosed:
+		srvConn.SetLinger(0)
+		srvConn.CloseRead()
+		waitFor = serverClosed
+	case <-serverClosed:
+		cliConn.CloseRead()
+		waitFor = clientClosed
 	}
+
+	<-waitFor
 }
 
-func closeConn(in <-chan *net.TCPConn) {
-	for conn := range in {
-		conn.Close()
-	}
-}
-
-func Serve() error {
-	addr, err := net.ResolveTCPAddr("tcp", ":" + config.GetString("listen_port"))
+func broker(dst, src net.Conn, srcClosed chan struct{}) {
+	_, err := io.Copy(dst, src)
 	if err != nil {
-		return err
+		log.Printf("Copy error: %s", err)
 	}
-
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return err
+	if err := src.Close(); err != nil {
+		log.Printf("Close error: %s", err)
 	}
-
-	pending, complete := make(chan *net.TCPConn), make(chan *net.TCPConn)
-
-	for i := 0; i < 5; i++ {
-		go handleConn(pending, complete)
-	}
-	go closeConn(complete)
-
-	for {
-		conn, err := listener.AcceptTCP()
-		if err != nil {
-			return err
-		}
-		pending <- conn
-	}
+	srcClosed <- struct{}{}
 }
-
