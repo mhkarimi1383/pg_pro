@@ -2,7 +2,6 @@ package tcpproxy
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/url"
@@ -81,7 +80,7 @@ func Proxy(srvConn, cliConn *net.TCPConn) {
 }
 
 func broker(dst, src net.Conn, srcClosed chan struct{}) {
-	_, err := io.Copy(dst, src)
+	_, err := copyBuffer(dst, src, nil)
 	if err != nil {
 		log.Printf("Copy error: %s", err)
 	}
