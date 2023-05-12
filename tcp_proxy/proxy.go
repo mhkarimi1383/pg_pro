@@ -1,12 +1,11 @@
 package tcpproxy
 
 import (
-	"fmt"
 	"log"
 	"net"
-	"net/url"
 
 	"github.com/mhkarimi1383/pg_pro/config"
+	"github.com/mhkarimi1383/pg_pro/connection"
 )
 
 func Serve() error {
@@ -35,20 +34,7 @@ func Serve() error {
 func handleClient(cliConn *net.TCPConn) {
 	defer cliConn.Close()
 
-	rAddrStr := ""
-	sources := config.GetSlice("sources")
-	for _, source := range sources {
-		src := source.(map[string]any)
-		if src["mode"] == "master" {
-			addr, err := url.Parse(fmt.Sprintf("%v", src["url"]))
-			if err != nil {
-				panic(err)
-			}
-			rAddrStr = addr.Host
-		}
-	}
-
-	serverConn, err := net.Dial("tcp", rAddrStr)
+	serverConn, err := connection.GetRawConnection()
 	if err != nil {
 		log.Printf("Failed to connect to server: %s", err)
 		return

@@ -1,10 +1,12 @@
 package tcpproxy
 
 import (
-	"io"
-	"fmt"
-	"errors"
 	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+
+	msghelper "github.com/mhkarimi1383/pg_pro/msg_helper"
 )
 
 var errInvalidWrite = errors.New("invalid write result")
@@ -27,7 +29,7 @@ func copyBuffer(dst io.Writer, src io.Reader, buf []byte) (written int64, err er
         nr, er := src.Read(buf)
         if nr > 0 {
 						fmt.Printf("copyBuffer: \n%v\n", hex.Dump(buf[0:nr]))
-            nw, ew := dst.Write(buf[0:nr])
+            nw, ew := dst.Write(msghelper.PrepareAnswer(buf[0:nr]))
             if nw < 0 || nr < nw {
                 nw = 0
                 if ew == nil {
