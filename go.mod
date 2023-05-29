@@ -20,7 +20,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pganalyze/pg_query_go/v4 v4.2.1-0.20230222080459-106c8c69f1db
+	github.com/pganalyze/pg_query_go/v4 v4.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.4
 	github.com/rueian/rueidis v0.0.100
