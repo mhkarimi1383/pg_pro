@@ -16,7 +16,7 @@ require (
 	github.com/eko/gocache/store/redis/v4 v4.2.0
 	github.com/eko/gocache/store/rediscluster/v4 v4.1.2
 	github.com/eko/gocache/store/ristretto/v4 v4.1.2
-	github.com/eko/gocache/store/rueidis/v4 v4.1.3
+	github.com/eko/gocache/store/rueidis/v4 v4.1.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -53,6 +53,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/redis/rueidis v1.0.10 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -65,7 +66,7 @@ require (
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
